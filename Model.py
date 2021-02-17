@@ -126,18 +126,38 @@ class VirusAgent(Agent):
         tipo,
     ):
         super().__init__(unique_id, model)
-
+        self.info = info
+       
+        def puntuacion_vulns(self):
+            vuln_Score = 0
+            contador = 0
+            for v in self.info['CVE']:
+                if v is not None:
+                    vuln_Score += v['cvss']
+                    contador +=1
+            self.vuln_Score = round(vuln_Score / contador,2)
+             
         self.state = initial_state
         self.experticie_atacante = experticie_atacante
-        self.info = info
         self.tipo = tipo
-        self.ip = 0
         self.org = self.info['org']
 
-             
-        if  self.info.get('ip_str'):
+
+        if  self.tipo == "Central":
+            self.cultura_Organizacional = 0
+
+        else:
             self.ip = info['ip_str']
-           
+            if(len(self.info['CVE'])>0):
+                puntuacion_vulns(self)
+            else:
+                self.vuln_Score = 0
+            
+            if(len(self.info['ports'])):
+                self.port_Score = self.info['port_Score']
+            else:
+                self.port_Score = 0
+        
 
     def step(self):
         neighbors_nodes = self.model.grid.get_neighbors(self.pos, include_center=False)
@@ -149,14 +169,10 @@ class VirusAgent(Agent):
         for a in susceptible_neighbors:
             print("Dato de:"+self.org+self.ip+"hacia mi jefecito: "+a.org+a.ip)
     
-    def puntuacion_vulns(self):
-        print("Aqui vamos a hacer algo para puntuar con respecto a las vulns")
 
-    def puntuacion_puertos(self):
-        print("aqui vamos a puntuar de acuerdo a puertos")
 
     def calificar_cultura(self):
-        print("Aqui vamos a calificar_cultura")
+        print("Aqui vamos a calificar_cultura en caso de ser recurso le va a mandar un valor al nodo central, en caso de nodo central va a calcular cositas.")
 
 """ la dejo porque es la misma estructura que para cuando sea atacado un nodo y quiera ver si se puede atacar otro.
   
