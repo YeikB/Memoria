@@ -9,23 +9,24 @@ orgs = {}
 
 with open(r"445Conce.json", "r") as read_file:
     data = json.load(read_file)
-with open(r"cves.json", "r") as read_file:
-    cves= json.load(read_file)
 
-df = pd.read_csv('Puertos.csv',sep=';')
-dictPuertos= df.set_index('Puertos').T.to_dict('list')
-print(dictPuertos[443]) 
+#diccionario de organizaciones
+orgs = {}
+#esta parte se puede hacer al principio del modelo, de esta forma se podria cambiar el criterio de agrupacion, para que no sea solo de org.
+#se mantiene en esta parte por temas de velocidad ya que esta parte solo se llama una vez, mientras que el modelo se llama al menos dos veces.
 
-for dato in data:
-	scorePuertos = 0
-	contador = 0
-	if dato.get('ports'):
-		for x in dato['ports']:
-			if dictPuertos.get(x) and dictPuertos[x][1] >0:
-				scorePuertos += dictPuertos[x][1]
-				contador +=1
-	dato['scorePuertos'] = scorePuertos / contador
+for i,dato in enumerate(data):
+	if dato['org'] in orgs:
+	    orgs[dato['org']]= orgs[dato['org']] + [i]
+	else:
+	    orgs[dato['org']] = [i]
 
-nodo = 14
-print(data[nodo]['ports'])
-print(data[nodo]['scorePuertos'])
+DatosxOrg = []
+for o in orgs.keys():
+    orgTemp = []    
+    for ag in orgs[o]:
+        orgTemp.append(data[ag])
+    nodoCentral = {"org":orgTemp[0]['org']}
+    orgTemp.append(nodoCentral)
+    DatosxOrg.append(orgTemp)
+print(DatosxOrg[0][7])

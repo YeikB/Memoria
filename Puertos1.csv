@@ -1,0 +1,46 @@
+Puertos:;Servicio;Nivel;Criticidad
+21;FTP;4;Medio-Alto, debería cambiarse a SFTP o FTPS
+22;SSH;3;Medio, en caso de estar sin uso de certificados podría ser susceptible a fuerza bruta
+23;Telnet;5;Alto, Telnet no tiene capacidad de cifrado de comunicaciones, sin embargo, su aparición es común en routers y otros dispositivos de comunicación
+53;DNS;3;Medio, existen multiples ataques sobre DNS, en general debería estar cerrrado a menos que el puerto sea un servidor DNS
+69;TFTP;4;Medio - Alto, es una versión menos segura que FTP, adicionalmente se conoce que aloja varios tipos de troyanos
+80;HTTP;2;Bajo-Medio, es el puerto web por defecto, ningún sitio que transmita información confidencial debería hacerlo bajo el puerto 80
+111;SunRPC;5;alto, funciona de manera analoga al puerto 135 para sistemas sun
+123;NTP;1;Bajo, Network Time Protocol, se utiliza para sincronizar hora, puede ser una posible forma de obtener información de una víctima y existen ataques específicos sobre estos servicios, pero en general se requeriría mas información
+135;MSRPC;5;Alto, RPC Endpoint Mapper, permite a otros sistemas descubrir los servicios que se disponibilizan en la máquina y en que puertos están alojados, es un puerto sensible que no debería exponerse, no se puede bloquear en un AD.
+161;SNMP;3;Medio, SNMP es un servicio utilizado para comunicar estado de dispositivos o cierto tipo de configuraciones, bajo ciertos esquemas es mas seguro que otros. 
+443;HTTPS;1;Bajo, normalmente se utiliza para trafico web mediante SSL/TLS
+444;webex;1;Bajo, Cisco Webex o snpp
+515;printer;3;Medio, es servicio de impresión, pero suelen usarlo los troyanos MScanWorm, lpdworm, ramen y posee vulnerablidades con CVE, adicionalmente no deberia estar expuesto
+554;MS-RTSP;3;Medio, Real time streaming protocol, de micriosoft, se usa para aceptar conecciones de clientes y entregar información a los que están haciendo stream de informtación mediante RSPT
+631;ipp;6;Normalmente es compartir impresión de Mac, IPP=Internet printing protocol
+1010;thinklinc;4;Medio-alto, thinlinc webb administration o troyano
+1723;PPTP;3;Medio, no es un puerto considerado seguro, pero se utiliza para establecer redes vpn de tipo PPTP
+2000;callbook;6;Remoteanyware, cisco, troyanos (basicamente es caso a caso igual)
+2002;troyanos;5;Alto, normalmente es usado por troyanos, hayu un par de usos pequeños ufera de eso
+2003;multiples;4;meido-alto, usado por dlink dap, jkuegos o troyanos
+2222;Multiples;3;Medio, normalmente es usado por rockewell CSp2, administrador remoto ESET o troyanos
+3000;varios;2;Riesgo medio/bajo, puerto re duby on rails, nodejs, rocket chat, entre otros
+3306;mysql;4;Medio-alto, permite conmexiones a mysql, existen multiples vulnmerabilidade so accesos sin credenciales,
+3389;MSRDP;4;Medio-alto, escritorio remoto de windows, normamlente no deberia exponerse a internet
+3702;WSD;3;medio, web services discovery es un servicio que permite a otros dispositivos ofrecer funcionalidades a clientes a través de este puerto
+5323;N/A;6;Sin asignar, es especifico de cada server
+5432;aplicaciones;4;medio-alto, ARD 2.0 database y PostgreSQL
+6003;apliacaiones;3;medio, x11, half life u oracle OPMN daemon
+6881;aplicaciones;6;juegos, bit torrent
+7443;oracleaas-https;3;servicio HTTPS de aplicaciones oracle, riesgo medio
+8000;multiples;5;alto, normalmente ers usado por toryanos, pero tambien aparece en ciertas implementaciones splunk, forticlient o juegos
+8080;http-alt;3;medio,  alternativa http, normalmente alojan servicios relativos a servidores web, rar avez deberían estar expuestos
+8090;http-alt-alt;4;Otra alternativa http, normalmente alojan servicios relativos a servidores web, rar avez deberían estar expuestos
+8181;MULTIPLEs;6;puede ser Sico PIX device manager o bien troyanos, o ipswitch imail
+8291;miktrotik;3;medio puertos asociados a routers miktorik o para que una aplicación windows administre un roiuter miktotik
+8880;unifi;3;mediom es tuilizado como portal de redireccion para el ubiquiti unifi controller
+8888;aplicaciones;3;medio, normalmente utilizado como puerto http alterno para alguna interfaz de administración
+9002;dynamid;6;Dynamid authentication, no específico
+9020;sunrfcontrol;1;Bajo, junipér network surfcontrol URL filtering
+9080;aplicaciones;6;dogtag certificate, virus, lg supersign, websphere http transport, entre otros
+9100;MULTIPLES;6;Se recomienda evaluar caso a caso
+9998;aplicaciones;2;lighttpd  de routers asus, totalbill, football manager live, troyano
+37777;aplicaciones;3;Medio, DVR y QSEE
+49152;aplicaciones;6;algunos clientes p2p o sistemas embebidos windows (home routers, camaras ip, etc)
+49153;aplicaciones;6;ANTLR

@@ -49,11 +49,15 @@ for i,dato in enumerate(data):
                 cveid =cve.id(x)
                 vuls.append(cveid)
                 cves[x] =cveid
+    else:
+        dato['vulns'] = []
 
     dato['CVE'] = vuls
     #agrego informacion sobre la obsolecencia de el sistema operativo, solo un valor, entre mas alto peor
     for k in OSobsoletos.keys():
         dato['ObsSO']=0
+        if not dato.get('os'):
+             dato['ObsSO']= -1
         if dato.get('os') and k in dato['os'] :
             dato['ObsSO'] = OSobsoletos[k]
             break
@@ -64,18 +68,24 @@ for i,dato in enumerate(data):
     else:
         orgs[dato['org']] = [i]
 
-    #agrego un valor relacionado a los puertos abiertos que tenia el resultado
-    port_Score = 0
+    #agrego un valor relacionado a los puertos abiertos que tenia el resultado y agrego una lista vacia en caso que no hayan para evitar errores
+    #si hay mas de 1/3 de puertos con puntuacion alta 4-5 va a tener la puntuacion mas alta que sera 6
+    #si no, tendra la valoracion mas alta 
     contador = 0
+    peor_puerto = 0
     if dato.get('ports'):
         for x in dato['ports']:
-            if dictPuertos.get(x) and dictPuertos[x][1] > 0:
-                port_Score += dictPuertos[x][1]
-                contador +=1
+            if dictPuertos.get(x):
+                if dictPuertos[x][1] > peor_puerto:
+                    peor_puerto = dictPuertos[x][1]
+                if dictPuertos[x][1] > 3:
+                    contador +=1
+        if contador > len(dato['ports']) / 3:
+            peor_puerto = 6
     else:
         dato['ports'] = []
 
-    dato['port_Score'] = port_Score / contador
+    dato['port_Score'] = peor_puerto 
 
 
 DatosxOrg = []
@@ -91,29 +101,46 @@ for o in orgs.keys():
 def network_portrayal(G):
 
     def node_color(agent):
-        return {State.COMPROMETIDO: "#FF0000", State.SUSCEPTIBLE: "#008000"}.get(
-          agent.state, "#808080"
-    )
+        if agent.tipo == "Nodo":
+            return "#23a83c"
+        elif agent.tipo == "Central":
+            return "#1c2694"
+        else:
+            return "#acaebf"    
+    
 
     def edge_color(agent1, agent2):
-        if State.RESISTANT in (agent1.state, agent2.state):
+        if State.ATACADO in (agent1.state, agent2.state):
             return "#000000"
         return "#000000"
 
     def edge_width(agent1, agent2):
-        if State.RESISTANT in (agent1.state, agent2.state):
+        if agent1.tipo == "Nodo" and agent2 == "Central":
             return 1
-        return 0.5
+        else:
+            return 0.5  
+
     def node_info(agent):
         if agent.tipo == "Nodo":
-            info = "Org: {}<br>ip: {}<br>cvss: {}<br>port_Score: {}".format(
-                    agent.org, agent.ip,agent.vuln_Score, agent.port_Score
+            info = "ip: {}<br>cultura: {}<br>cvss: {}<br>port_Score: {}".format(
+                    agent.ip, agent.cultura_nodo,agent.vuln_Score, agent.port_Score
                 )
-        else:
+        elif agent.tipo == "Central":
             info = "Org: {}<br>cultura: {}".format(
                     agent.org, agent.cultura_Organizacional
-                ) 
+                )
+        else:
+             info = "Org: {}<br>".format(
+                    agent.org
+                )
         return info
+    def size_nodes(agent):
+        if agent.tipo == "Nodo":
+            return 4
+        elif agent.tipo == "Central":
+            return 6
+        else:
+            return 2    
 
     def get_agents(source, target):
         return G.nodes[source]["agent"][0], G.nodes[target]["agent"][0]
@@ -121,9 +148,10 @@ def network_portrayal(G):
     portrayal = dict()
     portrayal["nodes"] = [
         {
-            "size": 4,
+            "size": size_nodes(agents[0]) ,
             "color": node_color(agents[0]),
             "tooltip":node_info(agents[0]) ,
+            "pos":(1,2)
         }
         for (_, agents) in G.nodes.data("agent")
     ]
@@ -144,20 +172,20 @@ def network_portrayal(G):
 network = NetworkModule(network_portrayal, 500, 500, library="d3")
 chart = ChartModule(
     [
-        {"Label": "COMPROMETIDO", "Color": "#FF0000"},
+        {"Label": "Comprometido", "Color": "#FF0000"},
         {"Label": "Susceptible", "Color": "#008000"},
-        {"Label": "Resistant", "Color": "#808080"},
+        {"Label": "Atacado", "Color": "#808080"},
     ]
 )
 
 
 class MyTextElement(TextElement):
     def render(self, model):
-        ratio = model.resistant_susceptible_ratio()
+        ratio = model.atacado_susceptible_ratio()
         ratio_text = "&infin;" if ratio is math.inf else "{0:.2f}".format(ratio)
         COMPROMETIDO_text = str(number_COMPROMETIDO(model))
 
-        return "Resistant/Susceptible Ratio: {}<br>COMPROMETIDO Remaining: {}".format(
+        return "Atacado/Susceptible Ratio: {}<br>COMPROMETIDO Remaining: {}".format(
             ratio_text, COMPROMETIDO_text
         )
 

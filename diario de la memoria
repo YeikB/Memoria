@@ -1,0 +1,201 @@
+diario de la memoria
+
+utilidad: 
+	shodan init bheXhF26Ny2zaPWiV8zgqhSmTcrTs0g0
+	cd /mnt/c/Users/diego/Desktop/Memoria/VirtualEnv
+
+tengo que agregar info de cvss y de los sombreros negros y blancos, ademas de hacer unos cuantos diagramas que expliquen todo el proceso.
+
+para los atacantes primero que ataquen al nodo central, que elegira el nodo mas debil, definira una variable del nodo a atacar, si logra comprometerlo
+va a buscar un nuevo nodo de la misma org, volviendo a definirlo en la variable, 
+lo que vamos a medir es el tiempo que le tomara al atacante comprometer un nodo, por lo tanto se tienen que generar un sistema en el que dependiendo de 
+las vulnerabilidades encontradas y la capacidad del atacante es el tiempo que le tomara comprometer el nodo, por lo tanto un nodo que sea comprometido rapidamente significa que es muy vulnerable, pero uno que toma mucho tiempo o nunca llega a ser comprometido es mucho mas seguro, para esto se pueden poner colores representando distintas cantidades de tiempo. por supuesto tengo que pensar una forma de hacer todo esto para despues preguntar exactamente como hacerlo, entonces un atacante de mayor nivel sera mucho mas rapido quizas en quebrar la seguridad que uno mas inexperto, ademas uno inexperto puede morir en el intento mas rapido quizas, o uno mas experimentado tendra mas capacidades, tambien depende un poco 
+
+en un paso inicial tiene que seleccionar el nodo mas debil, en base a score cultura local y en segunda medida las puntuaciones cvss y/o complejidad.
+una vez elegido el nodo mas debil tiene que comenzar a atacarlo, para esto lo mejor es utilizar una funcion para determinar el mas debil y otra para 
+llevar a cabo el ataque, la idea es que cada vez que sea llamado se avance un poco en su ataque, viendo alguna caracteristica mas compleja o algo asi.
+
+
+tienen que revisar:
+	la forma en que se calcula la cultura organizacional, los valores que se aplican y la penalizacion en caso de casos criticos
+	forma de categorizar los atacantes.
+
+
+primero voy a refinar todo lo relacionado con la cultura organizacional local, preguntas 3,4
+tengo que ver como obtener el año de las vulnerabilidades que encuentro
+despues voy a identificar los que consideraremos dispositivos de comunicacion para descartarlos
+me falta que la puntuacion de cultura pase al nodo central y que los nodos usen la del nodo central
+
+hasta aqui listo
+
+despuies voy a definir como se un nodo comprometido, para atender lo de la pregunta 1
+y finalmente intentare agregar los comportamientos de atacantes.
+
+
+25 de febrero, a nada de terminar el mes tengo que avanzar lo mas posible para terminar el puto modelo, tengo que aplicar los cambios indicados en la reunion en general no deberian ser problemas los cambios mas sencillos, lo que me complican son dos cosas:
+	-una correcta determinacion de la cultura organizacional, cuando cada nodo mande su info al nodo central para actualizar la nota general, creo que lo mejor deberia ser intentar llamar a una funcion dentro del nodo central el cual actualice la info, que esta wea lo hagan todos menos el central.
+	-lo otro es el tema de los atacantes, el interes se va a establecer como el objetivo al que atacara al parecer, y tiene que empezar a funcionar con el step, ademas va a buscar el nodo mas debil 
+
+Preguntas para reunion con profes:
+	1-.aclarar el tema de cuando un nodo esta comprometido y pueda comprometer a otros nodos: 
+		mirar vecinos que sean vulnerables al mismo puerto o ataque, 
+		mirar eslabon mas debil de un org, potencialmente por algun mecanismo. 
+		scope change o unchange, cuando es change puede saltar al servidor, podriamos dejarlo por la probabilidad de cultura mas capacidad. 
+
+	2-.Como lidiar con la falta de informacion?
+		son dispositivos de comunicacion, descartarlos, que no tengan reglas de accion
+
+	3-.aclarar la forma precisa de calificar la cultura organizacional, en cuanto a la importancia las vulnerabilidades, los puertos, etc
+		obsolecencia es riesgo maximo, bomba de tiempo, 11/10
+		si hay muchos criticos que se suba mucho, la cantidad de puertos abiertos.
+		fechas en las vulnerabilidades, por el tiempo que ha pasado sin que lo parchasen.
+
+	4-.dejar en claro cuales son los sistemas operativos que son inaceptables, y tratar de tener una valoracion de lo malos que son
+		si estan uno de estos, ta to mal
+		kernel linux, cualquier version 3.1x  
+
+	5-.aclarar comportamientos de atacantes
+		este es un analisis pasivo, bueno a tener en cuenta.
+		interes podria verse sobre lo que ataques	
+		podemos ver de acuerdo a lo que vaya a atacar es la como sera 
+		creo que lo mejor seria hacer perfiles de ataques
+		grupos de hackers que atacan financieras
+		hackers de empresas que buscan pa buscar plata
+		hacker mas curioso que ataca weas chicas
+		atacante oportunista
+		quizas tener un factor de tiempo necesario
+		cantidad de resultados es un indicativo de tamaño
+		no olvidar que la complejidad de un ataque esta en la info de vulns
+
+
+hacer lo de las vulnerabilidades para los puertos tmb
+hacer la evaluacion en base a vulnerabilidades
+hacer diccionario de sistemas operativos obsoletos.
+ver si cuando se inicia el agente puede llamar funciones de el.
+
+
+para el tema de las vulnerabilidades tengo que hacer un diccionario con las vulnerabilidades del resultado, y agregarla al resultado.
+tambien me interesa hacer un diccionario con cada vulnerabilidad encontrada de modo que primero se consulte ahi para ahorrar tiempo. *listo, me falta hacer algo parecido para los puertos.
+
+quizas para arreglar el tema de las distancias, habria que ver como se ve hacer un grafo con las weas de la organizacion y dsp agregarlo a un 
+grafo de todo. Esto es mas necesario de lo que creo, pero necesito una forma de garantizar que los datos queden en los nodos correctos. *ya hice algo que facilita arreglar estas cosas
+
+necesito hacer al 09 de febrero: *comentarios al 13 de feb
+	-seguir avanzando en el informe, ya se que vamos bien. 	*aqui no he hecho nada 
+	-arreglar visualmente los grafos en el modelo, como cambiar los largos de las aristas no funciona, tengo que probar cambiando las posiciones. * creo que hice un cambio bastante piola, falta arreglar las posiciones pero no deberia ser dificil
+	-modificar el codigo para que tenga solo cosas que son mias. *esto va listo compadre
+	-integrar todo lo necesario para poder tener una caracterizacion de org correcta.  *me falta solo lo de las vulnerabilidades 
+
+reunion 02:
+	estamos viendo el plano de ataque
+	se ataca al nodo organizacion
+	nivel de skill del atacante
+	intereses del atacante
+	necesidad de participacion del usuario, en el cve lo indica. esto depende de la cultura organizacional
+	obsolecencia, cvss promedio y cosas de puertos para determinar el nivel de cultura
+	nodo comprometido.
+	cuando un nodo se compromete, cuando compromete a otro recurso.
+
+necesito hacer al 28 de enero: 
+	-tener un dataset general con toda la info posible e ir haciendo consultas sobre esto, veo bueno consultar al profe.
+	-comenzar a escribir el informe, la parte de la discusion literaria, ver como lo hacen algunos papers.
+	-arreglar visualmente los grafos en el modelo, como cambiar los largos de las aristas no funciona, tengo que probar cambiando las posiciones.
+	-ver api de vulnerabilidades. pycvesearch es izi pizi
+	-crear algoritmos para revisar matches de versiones antiguas.
+
+hay un detalle en lo de encontrar los detalles de una CVE, se demora harto asi que hay que ver como solucionarlo
+
+	
+
+reunion 28 enero:
+	hacer un dataset general.
+	nodo organizacion nodos recursos asociados a org.
+
+	atacantes con distintos niveles de experticie y lo que busca.
+	entonces la idea es buscar sobre una organizacion, poder ver la cantidad de recursos que tiene asociados. 
+	idealmente hacer comparativos sobre estas organizaciones.
+
+
+	msbulletin: tiene un parche.
+	impact: ver los impactos en cada cosa de CIA
+	access: sobre lo que piden para entrar.
+
+	nota con respecto a cvss y otra con respecto a puertos.
+
+	que sea afectado un nodo, y si llega a ser atacado y tiene una posibilidad de "scope" que puede saltar a otro recurso, otro recurso se veria afectado.
+
+	ver una forma de visualizar una organizacion.
+
+	mostrar un preview de una superficie de ataque de una org, region, pais, etc
+
+	shodan no es en tiempo real, siempre vamos a estar hablando de aproximadosm todo lo que estamos viendo tiene un desfaz de tiempo-
+
+
+reunion profe 26 enero:
+	como es un agente externo, esta herramienta 
+	objetivo de esto puede ser para consultorias para una busqueda de puertos abiertos, recursos vs seguridad de esos recursos:punto de vista de cultural
+	metricas: nivel de ciberseguridad.
+
+24 de enero:
+	voy a revisar alguna api de vulnerabilidades
+	quiero avanzar el informe.
+
+20 de enero:
+voy a realizar unos datasets con resultados tipo,
+para empezar seran todas sobre concepcion, buscando puertos abiertos 445(SMB), 3389 (RDP), 23 (telnet)
+y otra con 27017 mongodb pero aqui parece que vamos a tener que buscar que tenga otros puertos mas abiertos como,
+3306 (mariaDB), 5432 (postgre), pero para esto supongo que va la primera pregunta,
+
+
+forma de solucionar agrupacion de agentes segun isp.
+vamos a crear un grafo vacio donde se generara un nodo para cada agente
+
+vulnerabilidades analisis de cabecera
+
+potenciales vulnerabilidades > vulnerabilidad 
+
+3389 es peligroso que este abierto, 445, 135, 
+
+para port 135 buscar por la palabra netbios
+
+os: 2008 R2, 2008, 2003, 2000, xp
+
+puertos malos, 8080, 8081
+
+levantar multiples ips por region.
+levantar multiples ips por isp.
+levantar multiples ips por org.
+
+recoger info de ciudades tipo.
+
+
+
+port:445 country:cl city:Concepción //smb
+consultas sobre organizaciones en especifico
+varios agrupamientos, trabajando por capas, si es posible.
+host unifiquen los nodos
+
+cultura organizacional de la empresa.
+si existe forma de caracterizar cultura organizacional de una empresa. analisis de riesgos and staff
+si no de todos modos 
+
+ver como cambiar detalles de los grafos para poder expander nods
+
+y otra wea mas que escribi en la libreta
+
+no perder la libreta.
+
+cisco nivel de cultura organizacional. 5 preguntas
+
+una forma de ver la cultura es ver la obsolecencia de los equipos, a traves de los antecedentes.
+existencia de vulnerabilidades antiguas.
+elementos que no deberian estar expuestos y estan expuestos.
+considerar una puntuacion para determinar el riesgo al que estaba expuesto.
+
+
+
+ser capaces de definir .
+
+puerto 445 siempre tiene una vulnerabilidad.
+
+preparar una consulta mas tecnica 
