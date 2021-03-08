@@ -4,6 +4,45 @@ utilidad:
 	shodan init bheXhF26Ny2zaPWiV8zgqhSmTcrTs0g0
 	cd /mnt/c/Users/diego/Desktop/Memoria/VirtualEnv
 
+definir que hacer cuando termine, creo que lo mejor es que ataque otras org
+
+primero la puntuacion de vulnerabilidades va a ser segun la peor nota **
+al elegirse un nodo mas debil se le cambiara su estado a en ataque
+en el step de agente el agente atacado va a probar si es atacado o no para esto va a depender de las siguientes consideraciones.
+	el nivel del atacante va a representar un porcentaje, a esto se le va a sumar un porcentaje por la puntuacion local, mas un porcentaje por la cultura organizacional, en base al porcentaje total sumado se va a ver si el nodo atacado fue comprometido o no. y se tiene que tener una consideraicion dependiendo de la complejidad de la peor vulnerabilidad, podria ser sumar la diferencia entre la experticie y la complejidad, por tanto en caso que la experticie sea mayor va a sumar, en caso contrario restar. tambien podria considerar una variable para saber si este wn viene de otro nodo o no.
+
+	ej experticie = 2 						-> 50% 		x25
+	punt local = 3 				-> 5-3 		-> 10%		x5
+	cult org  = 2 				-> 5-2		-> 15%		x5
+	complejidad peor vul =3 	-> 2-3 = -1 -> -25%		x25
+		
+	porc total =65% esta es la probabilidad 
+
+en caso de no tener vuln se deberia considerar el peor puerto abierto
+no se puede elegir como nodo mas debil uno que ya fue atacado
+se le cambiara el color a los nodos de acuerdo a su nota de puntaje local.
+si logra comprometer a un nodo va a pasar a otro con alguna ventaja, pero no fallar atacará a otro 
+estados:	susceptibles que son todos al principio
+			atacado puede ser uno que ya fue atacado pero no fue comprometido
+			en ataque para identificar al que esta recibiendo el ataque
+			comprometido para uno que ya fue atacado
+
+pa comentar con los profe******
+hacer lo que planteo, comentarlo a los profes lo antes posible para que lo validen y comentar lo de que la cultura org es mejor que sea un promedio puesto que buscar ver como se estan haciendo las cosas, para evaluar resultados especificos se tiene la puntuacion del nodo especifico, tambien adjuntar ej de la info que se entrega en las cve para ver si indica lo del scope porque yo no lo pillo, tambien considero que los colores vayan de acuerdo a la punt del nodo, no recuerdo si eso se habló o nodo
+******
+
+la nota es tan mala como el nodo mas debil
+impacto, nivel de riesgo, en este sentido puedo ver 
+
+aca estamos trabajanmdo con varios supuestos, asumimos que hay atacantes capaces, tenemos que asumir que el compromiso se realiza, 
+
+para resultados, mostrar la utilidad y como esta informacion generada puede servir para los consultores que son los que usarian
+esto muestra los recursos que pueden llegar a ser explotados por potenciales atacantes 
+
+
+revisar peor cvss, que permita saltar.
+
+
 tengo que agregar info de cvss y de los sombreros negros y blancos, ademas de hacer unos cuantos diagramas que expliquen todo el proceso.
 
 para los atacantes primero que ataquen al nodo central, que elegira el nodo mas debil, definira una variable del nodo a atacar, si logra comprometerlo
@@ -168,8 +207,6 @@ levantar multiples ips por org.
 
 recoger info de ciudades tipo.
 
-
-
 port:445 country:cl city:Concepción //smb
 consultas sobre organizaciones en especifico
 varios agrupamientos, trabajando por capas, si es posible.
@@ -191,8 +228,6 @@ una forma de ver la cultura es ver la obsolecencia de los equipos, a traves de l
 existencia de vulnerabilidades antiguas.
 elementos que no deberian estar expuestos y estan expuestos.
 considerar una puntuacion para determinar el riesgo al que estaba expuesto.
-
-
 
 ser capaces de definir .
 

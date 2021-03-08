@@ -85,7 +85,7 @@ for i,dato in enumerate(data):
     else:
         dato['ports'] = []
 
-    dato['port_Score'] = peor_puerto 
+    dato['punt_puertos'] = peor_puerto 
 
 
 DatosxOrg = []
@@ -102,7 +102,14 @@ def network_portrayal(G):
 
     def node_color(agent):
         if agent.tipo == "Nodo":
-            return "#23a83c"
+            if agent.estado == State.EN_ATAQUE:
+                return "#000000"
+            elif agent.estado == State.COMPROMETIDO:
+                return "#8a0000"
+            elif agent.estado == State.ATACADO:
+                return "#9da1ed"
+            else:
+                return "#23a83c"
         elif agent.tipo == "Central":
             return "#1c2694"
         else:
@@ -110,7 +117,7 @@ def network_portrayal(G):
     
 
     def edge_color(agent1, agent2):
-        if State.ATACADO in (agent1.state, agent2.state):
+        if State.ATACADO in (agent1.estado, agent2.estado):
             return "#000000"
         return "#000000"
 
@@ -122,8 +129,8 @@ def network_portrayal(G):
 
     def node_info(agent):
         if agent.tipo == "Nodo":
-            info = "ip: {}<br>cultura: {}<br>cvss: {}<br>port_Score: {}".format(
-                    agent.ip, agent.cultura_nodo,agent.vuln_Score, agent.port_Score
+            info = "ip: {}<br>cultura: {}<br>cvss: {}<br>punt_puertos: {}".format(
+                    agent.ip, agent.punt_nodo,agent.punt_vuln, agent.punt_puertos
                 )
         elif agent.tipo == "Central":
             info = "Org: {}<br>cultura: {}".format(
@@ -151,7 +158,7 @@ def network_portrayal(G):
             "size": size_nodes(agents[0]) ,
             "color": node_color(agents[0]),
             "tooltip":node_info(agents[0]) ,
-            "pos":(1,2)
+          
         }
         for (_, agents) in G.nodes.data("agent")
     ]

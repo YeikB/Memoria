@@ -12,10 +12,11 @@ class State(Enum):
     SUSCEPTIBLE = 0
     COMPROMETIDO = 1
     ATACADO = 2
+    EN_ATAQUE = 3
 
 
 def number_state(model, state):  #Indica la cantidad de nodos por estado, puede ser util
-    return sum([1 for a in model.grid.get_all_cell_contents() if a.state is state])
+    return sum([1 for a in model.grid.get_all_cell_contents() if a.estado is state])
 
 
 def number_COMPROMETIDO(model):
@@ -29,6 +30,9 @@ def number_susceptible(model):
 def number_atacado(model):
     return number_state(model, State.ATACADO)
 
+def number_en_ataque(model):
+    return number_state(model,State.EN_ATAQUE)
+
 
 class VirusOnNetwork(Model):
     """A virus model with some number of agents"""
@@ -40,7 +44,6 @@ class VirusOnNetwork(Model):
     ):
         self.objetivo = 0
         #randrange(len(lista))
-        print(lista[self.objetivo][0]['org'])
         self.G = nx.empty_graph(0)
         #lo que tengo que hacer es que en el primer mierda, reconozca el ultimo de la lista, que sera el central, hacemos que en el primer elemento de la
         #lista cree el nodo central con el valor que deberia tener sumando 
@@ -78,7 +81,7 @@ class VirusOnNetwork(Model):
                             self,
                             State.SUSCEPTIBLE,
                             self.experticie_atacante,
-                            self.objetivo,
+                            lista[self.objetivo][0]['org'],
                             info,
                             "dispositivo_com"
                         )
@@ -88,7 +91,7 @@ class VirusOnNetwork(Model):
                             self,
                             State.SUSCEPTIBLE,
                             self.experticie_atacante,
-                            self.objetivo,
+                            lista[self.objetivo][0]['org'],
                             info,
                             "Nodo"
                         )
@@ -99,7 +102,7 @@ class VirusOnNetwork(Model):
                         self,
                         State.SUSCEPTIBLE,
                         self.experticie_atacante,
-                        self.objetivo,
+                        lista[self.objetivo][0]['org'],
                         info,
                         "Central"
                     )
@@ -142,19 +145,14 @@ class VirusAgent(Agent):
         super().__init__(unique_id, model)
         self.info = info
 
-
-        
-        def cultura_organizacional(self, puntuacion):
-            print(self.cultura_Organizacional,"  ",puntuacion)
-
+        #se define una puntuacion de acuerdo a la peor de las cvss de todas las vulnerabilidades
         def puntuacion_vulns(self):
-            vuln_Score = 0
+            punt_vuln = 0
             contador = 0
             for v in self.info['CVE']:
-                if v is not None:
-                    vuln_Score += v['cvss']
-                    contador +=1
-            self.vuln_Score =  round(vuln_Score / contador,2)
+                if v is not None and v['cvss'] >= punt_vuln:
+                    punt_vuln = v['cvss']
+            self.punt_vuln =  punt_vuln 
 
         #se define una puntuacion en base al tiempo que tienen descubiertas parches para las vulnerabilidades.         
         def puntuacion_parches(self):
@@ -167,40 +165,39 @@ class VirusAgent(Agent):
                     if tiempo > mayor_tiempo:
                         mayor_tiempo = tiempo
             if mayor_tiempo > 4:
-                self.puntuacion_parches =  5
+                self.punt_parches =  5
             else:
-                self.puntuacion_parches =  mayor_tiempo
+                self.punt_parches =  mayor_tiempo
 
         #se define una puntuacion de cultura organizacional del nodo, de 1 a 10 donde 1 es la peor puntuacion
-        def cultura_Organizacional_nodo(self):
+        def puntuacion_nodo(self):
             score = 5
-            if self.info['ObsSO'] > 0 or self.info['port_Score'] == 6 or self.puntuacion_parches == 5:
+            if self.info['ObsSO'] > 0 or self.info['punt_puertos'] == 6 or self.punt_parches == 5:
                 score = 1
-                #no debo olvidar el tema de las fechas de las vulnerabilidades
             else:
-                if len(self.info['ports']) > 2 or len(self.info['vulns']) > 3:
+                if len(self.info['ports']) > 3 or len(self.info['vulns']) > 3:
                     score -=1
                 else:
                     score +=1
 
-                if self.puntuacion_parches > 1:
+                if self.punt_parches > 1:
                     score -=1
                 else: 
                     score +=1 
 
-                if self.info['port_Score'] > 4:
+                if self.info['punt_puertos'] > 3:
                     score -=1
                 else:
                     score +=1
 
-                if self.vuln_Score > 5:
+                if self.punt_vuln > 6:
                      score -=1
                 else:
                     score +=1
                 
-            self.cultura_nodo = score
+            self.punt_nodo = score
 
-        self.state = initial_state
+        self.estado = initial_state
         self.experticie_atacante = experticie_atacante
         self.tipo = tipo
         self.org = self.info['org']
@@ -218,19 +215,20 @@ class VirusAgent(Agent):
                 puntuacion_parches(self)
                 puntuacion_vulns(self)
             else:
-                self.vuln_Score = 0
-                self.puntuacion_parches = 0
+                self.punt_vuln = 0
+                self.punt_parches = 0
             
             if(len(self.info['ports'])):
-                self.port_Score = self.info['port_Score']
+                self.punt_puertos = self.info['punt_puertos']
             else:
-                self.port_Score = 0
-            cultura_Organizacional_nodo(self)
+                self.punt_puertos = 0
+            puntuacion_nodo(self)
         else:
             self.ip = info['ip_str']
         self.first = True
 
-    def cultura_nodos(self, cantidad):
+    #cada nodo entrega su puntuacion local al nodo central
+    def punt_nodos(self, cantidad):
         nodos_vecinos = self.model.grid.get_neighbors(self.pos, include_center=False)
         central = [
             agent
@@ -239,30 +237,86 @@ class VirusAgent(Agent):
         ]
         central[0].cultura_Organizacional += cantidad
 
+    #se calcula un promedio de la puntuacion de cada nodo para obtener una punt de cultura organizacinal
     def promedio_cultura(self):
         nodos_vecinos = self.model.grid.get_neighbors(self.pos, include_center=False)
-        nodos = [
+        agentes = [
             agent
             for agent in self.model.grid.get_cell_list_contents(nodos_vecinos)
             if agent.tipo == "Nodo"
         ]
-        self.cultura_Organizacional = round(self.cultura_Organizacional / len(nodos),1) 
-        for n in nodos:
+        self.cultura_Organizacional = round(self.cultura_Organizacional / len(agentes),1) 
+        for n in agentes:
             n.cultura = self.cultura_Organizacional
 
-    def nodo_mas_debil(self,nodo):
-        print("Aqui vamos a retornar el nodo mas debil, si es necesario de acuerdo a otra wea")
+    #funciones que facilitan ordenar listas en determinados momentos
+    def sort_per_punt_nodo(self,agent):
+        return agent.punt_nodo
+    def sort_per_cvss(self,agent):
+        return agent.punt_vuln
 
+
+    def nodo_mas_debil(self,nodo_atacado= None):
+        nodos_vecinos = self.model.grid.get_neighbors(self.pos, include_center=False)
+        nodos = [
+            agent
+            for agent in self.model.grid.get_cell_list_contents(nodos_vecinos)
+            if agent.tipo == "Nodo" and agent.estado == State.SUSCEPTIBLE
+        ]
+        nodos.sort(key=self.sort_per_punt_nodo)
+        if len(nodos)>0:
+            if nodo_atacado is None:
+                nodos_debiles = [ a for a in nodos if a.punt_nodo <= nodos[0].punt_nodo ]
+                if len(nodos_debiles)>0:
+                    nodos_debiles.sort(reverse = True, key=self.sort_per_cvss)
+                    nodo_mas_debil = nodos_debiles[0]
+            else:
+                print("En caso de ya haber atacado a un nodo, a partir de ese podra comprometer a otros")
+            nodo_mas_debil.estado = State.EN_ATAQUE
+        else:
+            print("todos los nodos atacados viejo")
+    def ataque_nodo(self):
+        porc_exp = self.experticie_atacante * 25
+        porc_punt_nodo = (5 - self.punt_nodo) * 5
+        porc_cult_org = (5 - self.cultura) * 5
+        mayor_cvss = 0
+        peor_vuln = 0  
+        for cve in self.info['CVE']:
+            if(cve['cvss'] > mayor_cvss):
+                mayor_cvss = cve['cvss']
+                peor_vuln = cve
+        if type(peor_vuln) is not int:
+            if peor_vuln['access']['complexity'] == "LOW":
+                peor_vuln = 1
+            elif  peor_vuln['access']['complexity'] == "MEDIUM":
+                peor_vuln = 2
+            elif peor_vuln['access']['complexity'] == "HIGH":
+                peor_vuln = 3
+        porc_peor_vuln = (self.experticie_atacante - peor_vuln) * 20
+        porc_total = porc_exp+porc_punt_nodo+porc_cult_org+porc_peor_vuln
+        wea = randrange(1,101) 
+        if float(wea) <= porc_total:
+            self.estado = State.COMPROMETIDO
+        else:
+            self.estado = State.ATACADO
+
+
+    #si el ataque sale bien retorna el nodo recien atacado para entrar a uno cercano con algun nivel de ventaja
+    #de no darse, que busque el mas debil nomas 
+    #si se acaban los nodos a atacar se tiene que cambiar la organizacion a ser atacada pa eso que retorne algo que les diga les diga a cada nodo que
+    #cambien de objetivo 
     def step(self):
         if self.first:
             self.first = False
             if self.tipo =="Nodo":
-                self.cultura_nodos(self.cultura_nodo)
+                self.punt_nodos(self.punt_nodo)
             elif self.tipo == "Central":
                 self.promedio_cultura()
-
-
-
+        if self.estado == State.EN_ATAQUE:
+            self.ataque_nodo()
+            #ataque_nodo tiene que retornar algo en caso que comprometa al nodo atacado para darlo como argumento para encontrar nodo mas debil
+        if self.tipo == "Central" and self.org == self.objetivo:
+            self.nodo_mas_debil()
 
 
    
