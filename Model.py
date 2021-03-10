@@ -41,12 +41,13 @@ class VirusOnNetwork(Model):
         self,
         lista = [],
         experticie_atacante = 0, #representa un nivel de experticie, 1 = bajo, 2 = medio, 3 = alto. Quizas se haga con mas niveles.
+        motivacion = 5,
+        objetivo = " ",
     ):
-        self.objetivo = 0
+
+        self.objetivo = objetivo
         #randrange(len(lista))
-        self.G = nx.empty_graph(0)
-        #lo que tengo que hacer es que en el primer mierda, reconozca el ultimo de la lista, que sera el central, hacemos que en el primer elemento de la
-        #lista cree el nodo central con el valor que deberia tener sumando 
+        self.G = nx.empty_graph(0) 
         correlative_num = 0
         central = 0
         for i in range(len(lista)):
@@ -81,7 +82,7 @@ class VirusOnNetwork(Model):
                             self,
                             State.SUSCEPTIBLE,
                             self.experticie_atacante,
-                            lista[self.objetivo][0]['org'],
+                            self.objetivo,
                             info,
                             "dispositivo_com"
                         )
@@ -91,7 +92,7 @@ class VirusOnNetwork(Model):
                             self,
                             State.SUSCEPTIBLE,
                             self.experticie_atacante,
-                            lista[self.objetivo][0]['org'],
+                            self.objetivo,
                             info,
                             "Nodo"
                         )
@@ -102,7 +103,7 @@ class VirusOnNetwork(Model):
                         self,
                         State.SUSCEPTIBLE,
                         self.experticie_atacante,
-                        lista[self.objetivo][0]['org'],
+                        self.objetivo,
                         info,
                         "Central"
                     )
@@ -136,7 +137,7 @@ class VirusAgent(Agent):
         self,
         unique_id,
         model,
-        initial_state,
+        estado_inicial,
         experticie_atacante,
         objetivo,
         info,
@@ -144,91 +145,64 @@ class VirusAgent(Agent):
     ):
         super().__init__(unique_id, model)
         self.info = info
-
-        #se define una puntuacion de acuerdo a la peor de las cvss de todas las vulnerabilidades
-        def puntuacion_vulns(self):
-            punt_vuln = 0
-            contador = 0
-            for v in self.info['CVE']:
-                if v is not None and v['cvss'] >= punt_vuln:
-                    punt_vuln = v['cvss']
-            self.punt_vuln =  punt_vuln 
-
-        #se define una puntuacion en base al tiempo que tienen descubiertas parches para las vulnerabilidades.         
-        def puntuacion_parches(self):
-            for cve in self.info['CVE']:
-                mayor_tiempo = 0
-                if cve is not None:
-                    descubierto = cve['id'].split("-") 
-                    parche = cve['last-modified'].split("-")  
-                    tiempo = int(parche[0]) - int(descubierto[1])
-                    if tiempo > mayor_tiempo:
-                        mayor_tiempo = tiempo
-            if mayor_tiempo > 4:
-                self.punt_parches =  5
-            else:
-                self.punt_parches =  mayor_tiempo
-
-        #se define una puntuacion de cultura organizacional del nodo, de 1 a 10 donde 1 es la peor puntuacion
-        def puntuacion_nodo(self):
-            score = 5
-            if self.info['ObsSO'] > 0 or self.info['punt_puertos'] == 6 or self.punt_parches == 5:
-                score = 1
-            else:
-                if len(self.info['ports']) > 3 or len(self.info['vulns']) > 3:
-                    score -=1
-                else:
-                    score +=1
-
-                if self.punt_parches > 1:
-                    score -=1
-                else: 
-                    score +=1 
-
-                if self.info['punt_puertos'] > 3:
-                    score -=1
-                else:
-                    score +=1
-
-                if self.punt_vuln > 6:
-                     score -=1
-                else:
-                    score +=1
-                
-            self.punt_nodo = score
-
-        self.estado = initial_state
+        self.estado = estado_inicial
         self.experticie_atacante = experticie_atacante
         self.tipo = tipo
         self.org = self.info['org']
-        self.objetivo = objetivo
 
+        #en caso de ser un nodo central maneja muchos menos variables
         if  self.tipo == "Central":
             self.cultura_Organizacional = 0
+            self.objetivo = objetivo
 
         elif self.tipo == "Nodo":
             self.cultura = 0
-            self.vul = len(self.info['CVE'])
-            self.por = len(self.info['ports'])
+            self.punt_puertos = self.info['punt_puertos']
             self.ip = info['ip_str']
-            if(len(self.info['CVE'])>0):
-                puntuacion_parches(self)
-                puntuacion_vulns(self)
-            else:
-                self.punt_vuln = 0
-                self.punt_parches = 0
+            self.cantidad_vulns = len(self.info['vulns'])
             
-            if(len(self.info['ports'])):
-                self.punt_puertos = self.info['punt_puertos']
-            else:
-                self.punt_puertos = 0
-            puntuacion_nodo(self)
+            self.puntuacion_vulns()
+
+            self.puntuacion_nodo()
+
         else:
             self.ip = info['ip_str']
+        
         self.first = True
 
+    #se define una puntuacion de acuerdo a la peor de las cvss de todas las vulnerabilidades
+    def puntuacion_vulns(self):
+        if(len(self.info['CVE'])>0):
+            punt_vuln = 0
+            contador = 0
+            for v in self.info['CVE']:
+                if v is not None:
+                    punt_vuln += v['cvss']
+                    contador += 1
+            self.punt_vuln =  round (punt_vuln / contador, 2) 
+        else:
+            self.punt_vuln = 0
+
+    #se define una puntuacion de cultura organizacional del nodo, de 1 a 10 donde 10 es la peor puntuacion
+    def puntuacion_nodo(self):
+            if self.info['ObsSO'] > 0:
+                self.punt_SO = 10
+            else:
+                self.punt_SO = 5
+
+            puntaje = self.punt_vuln + self.punt_puertos + self.punt_SO
+            puntaje = round((puntaje / 3),2)
+
+            self.punt_nodo = puntaje
+            if puntaje < 5:
+                self.Nivel = "Bueno"
+            elif puntaje >= 5 and puntaje <7.5:
+                self.Nivel = "Medio"
+            else:
+                self.Nivel = "Grave"
+
     #cada nodo entrega su puntuacion local al nodo central
-    def punt_nodos(self, cantidad):
+    def entrega_punt_nodos(self, cantidad):
         nodos_vecinos = self.model.grid.get_neighbors(self.pos, include_center=False)
         central = [
             agent
@@ -248,68 +222,105 @@ class VirusAgent(Agent):
         self.cultura_Organizacional = round(self.cultura_Organizacional / len(agentes),1) 
         for n in agentes:
             n.cultura = self.cultura_Organizacional
+############################################################### hasta aqui funciona todo perfect #######################################################
+
 
     #funciones que facilitan ordenar listas en determinados momentos
     def sort_per_punt_nodo(self,agent):
         return agent.punt_nodo
     def sort_per_cvss(self,agent):
-        return agent.punt_vuln
+        peor_cvss = 0
+        for v in agent.info['CVE']:
+            if v is not None:
+                if v['access']['complexity'] == "LOW":
+                        temp = 1
+                elif v['access']['complexity'] == "MEDIUM":
+                    temp = 2
+                else:
+                    temp = 3
+                if v['cvss']>peor_cvss and temp <= self.experticie_atacante:
+                    peor_cvss = v['cvss']
+        return peor_cvss
 
 
     def nodo_mas_debil(self,nodo_atacado= None):
         nodos_vecinos = self.model.grid.get_neighbors(self.pos, include_center=False)
-        nodos = [
+        nodos_vulns = [
             agent
             for agent in self.model.grid.get_cell_list_contents(nodos_vecinos)
-            if agent.tipo == "Nodo" and agent.estado == State.SUSCEPTIBLE
+            if agent.tipo == "Nodo" and agent.cantidad_vulns > 0 and agent.estado == State.SUSCEPTIBLE
         ]
-        nodos.sort(key=self.sort_per_punt_nodo)
-        if len(nodos)>0:
-            if nodo_atacado is None:
-                nodos_debiles = [ a for a in nodos if a.punt_nodo <= nodos[0].punt_nodo ]
-                if len(nodos_debiles)>0:
-                    nodos_debiles.sort(reverse = True, key=self.sort_per_cvss)
-                    nodo_mas_debil = nodos_debiles[0]
-            else:
-                print("En caso de ya haber atacado a un nodo, a partir de ese podra comprometer a otros")
-            nodo_mas_debil.estado = State.EN_ATAQUE
+        #de esta lista de nodos_vulns, tengo que ver todos los que tienen vulnerabilidades con complejidades iguales o menores que la capacidad del atacante.
+        nodos_atacables = []
+        for n in nodos_vulns:
+            for v in n.info['CVE']:
+                if v is not None:
+                    if v['access']['complexity'] == "LOW":
+                        temp = 1
+                    elif v['access']['complexity'] == "MEDIUM":
+                        temp = 2
+                    else:
+                        temp = 3
+                    if temp <= self.experticie_atacante:
+                        nodos_atacables.append(n)
+                        break
+        #de esta lista de nodos ordenarlos de acuerdo a su cvss mas alto en una vulnerabilidad atacable segun capacidad del atacante
+        nodos_atacables.sort(reverse=True, key=self.sort_per_cvss)
+        print(len(nodos_atacables))
+        """for n in nodos_atacables:
+                                    for v in n.info['CVE']:
+                                        print("cvss: ",v['cvss'],"complejidad: ",v['access']['complexity'], "UI: ", v['access']['authentication'])
+                                    print("este fue el nodo: ",n.ip)"""
+        ########################################aqui tengo que descartar los que tengan vuln con cvss menores a los que indique la motivacion
+        if len(nodos_atacables) > 0:
+            nodos_atacables[0].estado = State.EN_ATAQUE
+            nodos_atacables.pop(0)
         else:
-            print("todos los nodos atacados viejo")
+            print("hacer algo para que vaya a atacar a otra parte")
+    
+    def sort_by_cvss_cve(self,cve):
+        return cve['cvss']
+
     def ataque_nodo(self):
-        porc_exp = self.experticie_atacante * 25
-        porc_punt_nodo = (5 - self.punt_nodo) * 5
-        porc_cult_org = (5 - self.cultura) * 5
-        mayor_cvss = 0
-        peor_vuln = 0  
-        for cve in self.info['CVE']:
-            if(cve['cvss'] > mayor_cvss):
-                mayor_cvss = cve['cvss']
-                peor_vuln = cve
-        if type(peor_vuln) is not int:
-            if peor_vuln['access']['complexity'] == "LOW":
-                peor_vuln = 1
-            elif  peor_vuln['access']['complexity'] == "MEDIUM":
-                peor_vuln = 2
-            elif peor_vuln['access']['complexity'] == "HIGH":
-                peor_vuln = 3
-        porc_peor_vuln = (self.experticie_atacante - peor_vuln) * 20
-        porc_total = porc_exp+porc_punt_nodo+porc_cult_org+porc_peor_vuln
-        wea = randrange(1,101) 
-        if float(wea) <= porc_total:
+        #tengo que encontrar la peor vulnerabilidad dentro de las capacidades del atacante, y de haber mas de una elegir una que no necesite UI
+        vuls = []
+        peor_cvss = 0
+        for v in self.info['CVE']:
+            if v is not None:
+                    if v['access']['complexity'] == "LOW":
+                        temp = 1
+                    elif v['access']['complexity'] == "MEDIUM":
+                        temp = 2
+                    else:
+                        temp = 3
+                    if temp <= self.experticie_atacante:
+                        vuls.append(v)
+        vuls.sort(reverse = True,key=self.sort_by_cvss_cve)
+        peor_vuln = vuls[0]
+        for v in vuls:
+            if v['cvss'] == peor_vuln['cvss'] and v['access']['authentication'] == "NONE":
+                peor_vuln = v
+                break
+        if peor_vuln['access']['authentication'] == "NONE":
             self.estado = State.COMPROMETIDO
         else:
-            self.estado = State.ATACADO
+            print("Cultura organizacional: ",self.cultura_Organizacional)
+            prob_error_humano = self.cultura_Organizacional * 10 
+            if randrange(1,101) <= prob_error_humano:
+                self.estado = State.COMPROMETIDO
+            else:
+                self.estado = State.ATACADO
 
 
-    #si el ataque sale bien retorna el nodo recien atacado para entrar a uno cercano con algun nivel de ventaja
-    #de no darse, que busque el mas debil nomas 
-    #si se acaban los nodos a atacar se tiene que cambiar la organizacion a ser atacada pa eso que retorne algo que les diga les diga a cada nodo que
+    #De la organizacion objetivo se ven todas las vulnerabilidades de todos sus nodos, se eligen las que sean de la capacidad del atacante
+    #de estas se eligen todas hasta (10 - el nivel de motivacion ) y se van eligiendo los nodos al que pertenezcan las vulnerabilidades en orden
+    #del cvss de forma decreciente
     #cambien de objetivo 
     def step(self):
         if self.first:
             self.first = False
             if self.tipo =="Nodo":
-                self.punt_nodos(self.punt_nodo)
+                self.entrega_punt_nodos(self.punt_nodo)
             elif self.tipo == "Central":
                 self.promedio_cultura()
         if self.estado == State.EN_ATAQUE:

@@ -24,7 +24,8 @@ OSobsoletos = {
     "2008":2,
     "2003":3,
     "xp":4,
-    "2000":5
+    "2000":5,
+    "Linux 3.1":6
 }
 #genero diccionario de puertos
 df = pd.read_csv('Puertos.csv',sep=';')
@@ -68,24 +69,29 @@ for i,dato in enumerate(data):
     else:
         orgs[dato['org']] = [i]
 
-    #agrego un valor relacionado a los puertos abiertos que tenia el resultado y agrego una lista vacia en caso que no hayan para evitar errores
-    #si hay mas de 1/3 de puertos con puntuacion alta 4-5 va a tener la puntuacion mas alta que sera 6
-    #si no, tendra la valoracion mas alta 
-    contador = 0
-    peor_puerto = 0
+    #se genera una evaluacion de los puertos abiertos, de acuerdo a la criticidad indicada en el diccionario
+    #Si hay mas de 1 puerto de maxima criticidad se tendra valor critico de 10 que es el mas alto
+    #si no, se usa la ponderacion de los puertos abiertos, como esta puntuacion es de 1 a 5, se multiplicara por 2 
+    contador1 = 0
+    contador2 = 0
+    suma_puertos = 0
     if dato.get('ports'):
         for x in dato['ports']:
             if dictPuertos.get(x):
-                if dictPuertos[x][1] > peor_puerto:
-                    peor_puerto = dictPuertos[x][1]
-                if dictPuertos[x][1] > 3:
-                    contador +=1
-        if contador > len(dato['ports']) / 3:
-            peor_puerto = 6
+                if dictPuertos[x][1] == 5:
+                    contador2 += 1
+                suma_puertos += dictPuertos[x][1]     
+                contador1 += 1
+
+        if contador2 > 1:
+            suma_puertos  = 10
+        elif contador1 > 0:
+            suma_puertos = round( (suma_puertos * 2) / contador1 )
     else:
         dato['ports'] = []
+        suma_puertos = 1
 
-    dato['punt_puertos'] = peor_puerto 
+    dato['punt_puertos'] = suma_puertos 
 
 
 DatosxOrg = []
@@ -102,14 +108,22 @@ def network_portrayal(G):
 
     def node_color(agent):
         if agent.tipo == "Nodo":
-            if agent.estado == State.EN_ATAQUE:
-                return "#000000"
+            if agent.estado == State.SUSCEPTIBLE:
+                if agent.Nivel == "Bueno":
+                    return "#13a600"
+                elif agent.Nivel == "Medio":
+                    return "#fbff00"
+                else:
+                    return "#8a0000" 
+            elif agent.estado == State.EN_ATAQUE:
+                return "#d8f0de"
             elif agent.estado == State.COMPROMETIDO:
-                return "#8a0000"
+                return "#4d0673"
             elif agent.estado == State.ATACADO:
                 return "#9da1ed"
             else:
                 return "#23a83c"
+
         elif agent.tipo == "Central":
             return "#1c2694"
         else:
@@ -122,15 +136,15 @@ def network_portrayal(G):
         return "#000000"
 
     def edge_width(agent1, agent2):
-        if agent1.tipo == "Nodo" and agent2 == "Central":
+        if agent1.tipo == "Nodo" and agent2 == "Central":   
             return 1
         else:
             return 0.5  
 
     def node_info(agent):
         if agent.tipo == "Nodo":
-            info = "ip: {}<br>cultura: {}<br>cvss: {}<br>punt_puertos: {}".format(
-                    agent.ip, agent.punt_nodo,agent.punt_vuln, agent.punt_puertos
+            info = "ip: {}<br>puntaje nodo: {}<br>vuln: {}<br>Puertos: {}<br>SO: {}".format(
+                    agent.ip, agent.punt_nodo,agent.punt_vuln, agent.punt_puertos,agent.punt_SO
                 )
         elif agent.tipo == "Central":
             info = "Org: {}<br>cultura: {}".format(
@@ -185,7 +199,6 @@ chart = ChartModule(
     ]
 )
 
-
 class MyTextElement(TextElement):
     def render(self, model):
         ratio = model.atacado_susceptible_ratio()
@@ -207,6 +220,21 @@ model_params = {
         3,
         1,
         description="Escoja el nivel de experticie que tendrá el atacante.",
+    ),
+    "motivacion": UserSettableParameter(
+        "slider",
+        "Nivel de Motivacion",
+        5,
+        1,
+        10,
+        0.1,
+        description="Escoja el nivel de experticie que tendrá el atacante.",
+    ),
+    "objetivo": UserSettableParameter(
+        "choice",
+        "Organizacion objetivo",
+        value=list(orgs.keys())[0],
+        choices=list(orgs.keys()),
     ),
 }
 
