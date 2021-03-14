@@ -3,8 +3,40 @@ diario de la memoria
 utilidad: 
 	shodan init bheXhF26Ny2zaPWiV8zgqhSmTcrTs0g0
 	cd /mnt/c/Users/diego/Desktop/Memoria/VirtualEnv
+	
+
+para la presentacion del lunes:
+	-tengo que hacer un log de toda la informacion que pasa pero en la parte de la visualizacion, ademas intentar aprender todo lo posible de la visualizacion pa que se vea lo mas decente posible. ver que puedo hacer al momento de clikear, he intentar seguir los nodos dentro de la grafica.
+	-quiero que los recursos se ordenen de acuerdo de su puntaje, para eso necesito calcular su puntuacion antes que se forme el grafo, en la parte del server, despues hacer la estructura qla , que cada lista se ordene por esa puntuacion y despues que se cree el nodo central.
+	-Tengo que terminar de escribir el informe qlo, pero eso para cuando termine con las demas cosas
+
+jueves 11 a las 17:
+	hacer que cuando termine con una org pase a atacar a otra
+	cuando termine con una organizacion se pause
+	que el chart de datos muestre segun organizacion o algun dato mas importante
+	arreglar el informe, faltan varias weas
+
+
+para la demostracion del 11 de marzo:
+	cuando no se tiene un SO obsoleto hice que pusiera un valor medio de 5 para que todo se defina entre puertos y vulns
+
+cosas proximas versiones: 	
+	atacantes se basan segun el tipo de negocio,
+
+reunion 9 de marzo: dudas **estan toas resueltas
+	que hacer cuando no se tiene vulnerabilidades? no se considera? o se trabaja en base a la criticidad de los puertos abiertos
+	entiendo que si no requiere UI es de determinista, entonces se usa expertiz del atacante contra complejidad de vuln?
+	me gustaria definir exactamente las reglas para la evaluacion de los nodos en particular, 
+	definir exactamente la determinacion de exito del ataque, prob de exito inv proporcional a COC, riesgo nodo: Alto-Medio-Bajo, general: promedio.	
+	una vez que todos los nodos del objetivo fueron atacados se pasa a otra org? o se detiene, y si sigue que ataque a otra
+
 
 definir que hacer cuando termine, creo que lo mejor es que ataque otras org
+ver el tema de que pasa con los atacantes una vez tenga un modo de definir los ataques
+ver el tema de recoleccion de datos para usar el modelo, pero creo que tambien depende de la definicion del ataque.
+el chart que muestra la wea actualmente si puede ser util
+
+hacer diagramas, uno sencillo vendria a ser de el proceso de inf, donde una consulta entra a shodan que se la pasa a mesa que la distribuye en orgs y esta la magia, algo asi tengo que hacer, quizas en este mismo o en otro mostrar que se divide en orgs y dsp en nodos. Tambien tengo que indicar que viene mas info de otras partes.
 
 primero la puntuacion de vulnerabilidades va a ser segun la peor nota **
 al elegirse un nodo mas debil se le cambiara su estado a en ataque

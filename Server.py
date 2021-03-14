@@ -16,7 +16,7 @@ from ares import CVESearch
 cve = CVESearch()
 #api = Shodan(get_api_key())
 
-with open(r"445Conce.json", "r") as read_file:
+with open(r"Stgo445.json", "r") as read_file:
     data = json.load(read_file)
 #genero un diccionario de Sistemas operativos obsoletos.
 OSobsoletos = {
@@ -31,9 +31,10 @@ OSobsoletos = {
 df = pd.read_csv('Puertos.csv',sep=';')
 dictPuertos= df.set_index('Puertos').T.to_dict('list')
 #leo de diccionario de vulnerabilidades especifica para este dataset para que sea mas rapido.
-with open(r"cves.json", "r") as read_file:
+with open(r"cvesV3.json", "r") as read_file:
     cves= json.load(read_file)
 
+print(len(data))
 #diccionario de organizaciones
 orgs = {}
 #esta parte se puede hacer al principio del modelo, de esta forma se podria cambiar el criterio de agrupacion, para que no sea solo de org.
@@ -81,8 +82,10 @@ for i,dato in enumerate(data):
                 if dictPuertos[x][1] == 5:
                     contador2 += 1
                 suma_puertos += dictPuertos[x][1]     
-                contador1 += 1
-
+                
+            else:
+                suma_puertos += 0
+            contador1 += 1
         if contador2 > 1:
             suma_puertos  = 10
         elif contador1 > 0:
@@ -92,8 +95,13 @@ for i,dato in enumerate(data):
         suma_puertos = 1
 
     dato['punt_puertos'] = suma_puertos 
-
-
+Empresas = list(orgs.keys())
+for i,e in enumerate(Empresas):
+    if type(e) != str:
+        break
+orgs.pop(e)
+Empresas = list(orgs.keys())
+Empresas.sort()
 DatosxOrg = []
 for o in orgs.keys():
     orgTemp = []    
@@ -112,13 +120,15 @@ def network_portrayal(G):
                 if agent.Nivel == "Bueno":
                     return "#13a600"
                 elif agent.Nivel == "Medio":
-                    return "#fbff00"
+                    return "#d7e300"
+                elif agent.Nivel == "Grave":
+                    return "#ed0f00" 
                 else:
-                    return "#8a0000" 
+                    return "#7d0b5b"
             elif agent.estado == State.EN_ATAQUE:
                 return "#d8f0de"
             elif agent.estado == State.COMPROMETIDO:
-                return "#4d0673"
+                return "#000000"
             elif agent.estado == State.ATACADO:
                 return "#9da1ed"
             else:
@@ -131,15 +141,31 @@ def network_portrayal(G):
     
 
     def edge_color(agent1, agent2):
-        if State.ATACADO in (agent1.estado, agent2.estado):
-            return "#000000"
+        if agent2.tipo == "Nodo":
+            if agent2.estado == State.SUSCEPTIBLE:
+                if agent2.Nivel == "Bueno":
+                    return "#13a600"
+                elif agent2.Nivel == "Medio":
+                    return "#d7e300"
+                elif agent2.Nivel == "Grave":
+                    return "#ed0f00" 
+                else:
+                    return "#7d0b5b"
+            elif agent2.estado == State.EN_ATAQUE:
+                return "#d8f0de"
+            elif agent2.estado == State.COMPROMETIDO:
+                return "#000000"
+            elif agent2.estado == State.ATACADO:
+                return "#9da1ed"
+            else:
+                return "#23a83c"
         return "#000000"
 
     def edge_width(agent1, agent2):
-        if agent1.tipo == "Nodo" and agent2 == "Central":   
-            return 1
+        if agent1.tipo == "Central" and agent2.tipo == "Nodo":   
+            return 0.5
         else:
-            return 0.5  
+            return 0.1  
 
     def node_info(agent):
         if agent.tipo == "Nodo":
@@ -147,7 +173,7 @@ def network_portrayal(G):
                     agent.ip, agent.punt_nodo,agent.punt_vuln, agent.punt_puertos,agent.punt_SO
                 )
         elif agent.tipo == "Central":
-            info = "Org: {}<br>cultura: {}".format(
+            info = "{}<br>cultura: {}".format(
                     agent.org, agent.cultura_Organizacional
                 )
         else:
@@ -190,7 +216,7 @@ def network_portrayal(G):
     return portrayal
 
 
-network = NetworkModule(network_portrayal, 500, 500, library="d3")
+network = NetworkModule(network_portrayal, 800, 800, library="d3")
 chart = ChartModule(
     [
         {"Label": "Comprometido", "Color": "#FF0000"},
@@ -233,8 +259,8 @@ model_params = {
     "objetivo": UserSettableParameter(
         "choice",
         "Organizacion objetivo",
-        value=list(orgs.keys())[0],
-        choices=list(orgs.keys()),
+        value=Empresas[0] ,
+        choices=Empresas,
     ),
 }
 

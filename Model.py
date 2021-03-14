@@ -6,7 +6,7 @@ from mesa import Agent, Model
 from mesa.time import BaseScheduler
 from mesa.datacollection import DataCollector
 from mesa.space import NetworkGrid
-from random import randrange
+from random import randrange,random
 
 class State(Enum):
     SUSCEPTIBLE = 0
@@ -44,7 +44,7 @@ class VirusOnNetwork(Model):
         motivacion = 5,
         objetivo = " ",
     ):
-
+        self.motivacion = motivacion
         self.objetivo = objetivo
         #randrange(len(lista))
         self.G = nx.empty_graph(0) 
@@ -53,14 +53,17 @@ class VirusOnNetwork(Model):
         for i in range(len(lista)):
             for j,y in enumerate(lista[i]):
                 if j > 0:
-                    self.G.add_node(correlative_num, pos = (0,0))
+                    self.G.add_node(correlative_num)
                     self.G.add_edge(correlative_num, central)
                 else:
-                    self.G.add_node(correlative_num, pos = (0,0))
+                    self.G.add_node(correlative_num)
+                    """if correlative_num > 0:
+                                                                                      self.G.add_edge(correlative_num, central) """  
                     central=correlative_num
                 y['correlativo'] = correlative_num 
                 correlative_num+=1
         self.experticie_atacante = experticie_atacante
+        self.nodos_centrales = []
 
         self.grid = NetworkGrid(self.G)
         self.schedule = BaseScheduler(self)
@@ -82,6 +85,7 @@ class VirusOnNetwork(Model):
                             self,
                             State.SUSCEPTIBLE,
                             self.experticie_atacante,
+                            self.motivacion,
                             self.objetivo,
                             info,
                             "dispositivo_com"
@@ -92,6 +96,7 @@ class VirusOnNetwork(Model):
                             self,
                             State.SUSCEPTIBLE,
                             self.experticie_atacante,
+                            self.motivacion,
                             self.objetivo,
                             info,
                             "Nodo"
@@ -103,10 +108,12 @@ class VirusOnNetwork(Model):
                         self,
                         State.SUSCEPTIBLE,
                         self.experticie_atacante,
+                        self.motivacion,
                         self.objetivo,
                         info,
                         "Central"
                     )
+                    self.nodos_centrales.append(a)
                 self.schedule.add(a)
                 # Add the agent to the node
                 self.grid.place_agent(a, info['correlativo'])
@@ -139,6 +146,7 @@ class VirusAgent(Agent):
         model,
         estado_inicial,
         experticie_atacante,
+        motivacion,
         objetivo,
         info,
         tipo,
@@ -147,19 +155,19 @@ class VirusAgent(Agent):
         self.info = info
         self.estado = estado_inicial
         self.experticie_atacante = experticie_atacante
+        self.motivacion = 10 - motivacion
         self.tipo = tipo
         self.org = self.info['org']
+        self.cultura_Organizacional = 0
 
         #en caso de ser un nodo central maneja muchos menos variables
         if  self.tipo == "Central":
-            self.cultura_Organizacional = 0
             self.objetivo = objetivo
 
         elif self.tipo == "Nodo":
-            self.cultura = 0
             self.punt_puertos = self.info['punt_puertos']
             self.ip = info['ip_str']
-            self.cantidad_vulns = len(self.info['vulns'])
+            self.cantidad_vulns = len(self.info['vulns'])   
             
             self.puntuacion_vulns()
 
@@ -179,7 +187,11 @@ class VirusAgent(Agent):
                 if v is not None:
                     punt_vuln += v['cvss']
                     contador += 1
-            self.punt_vuln =  round (punt_vuln / contador, 2) 
+
+            try:
+                self.punt_vuln =  round (punt_vuln / contador, 2) 
+            except:
+                self.punt_vuln = 0
         else:
             self.punt_vuln = 0
 
@@ -188,7 +200,7 @@ class VirusAgent(Agent):
             if self.info['ObsSO'] > 0:
                 self.punt_SO = 10
             else:
-                self.punt_SO = 5
+                self.punt_SO = 1
 
             puntaje = self.punt_vuln + self.punt_puertos + self.punt_SO
             puntaje = round((puntaje / 3),2)
@@ -196,10 +208,13 @@ class VirusAgent(Agent):
             self.punt_nodo = puntaje
             if puntaje < 5:
                 self.Nivel = "Bueno"
-            elif puntaje >= 5 and puntaje <7.5:
+            elif puntaje >= 5 and puntaje <7:
                 self.Nivel = "Medio"
-            else:
+            elif puntaje <9 :
                 self.Nivel = "Grave"
+            else:
+                self.Nivel = "Critico"
+
 
     #cada nodo entrega su puntuacion local al nodo central
     def entrega_punt_nodos(self, cantidad):
@@ -221,9 +236,7 @@ class VirusAgent(Agent):
         ]
         self.cultura_Organizacional = round(self.cultura_Organizacional / len(agentes),1) 
         for n in agentes:
-            n.cultura = self.cultura_Organizacional
-############################################################### hasta aqui funciona todo perfect #######################################################
-
+            n.cultura_Organizacional = self.cultura_Organizacional
 
     #funciones que facilitan ordenar listas en determinados momentos
     def sort_per_punt_nodo(self,agent):
@@ -244,13 +257,14 @@ class VirusAgent(Agent):
 
 
     def nodo_mas_debil(self,nodo_atacado= None):
-        nodos_vecinos = self.model.grid.get_neighbors(self.pos, include_center=False)
+        nodos_vecinos = self.model.grid.get_neighbors(self.unique_id, include_center=False)
         nodos_vulns = [
             agent
             for agent in self.model.grid.get_cell_list_contents(nodos_vecinos)
             if agent.tipo == "Nodo" and agent.cantidad_vulns > 0 and agent.estado == State.SUSCEPTIBLE
         ]
         #de esta lista de nodos_vulns, tengo que ver todos los que tienen vulnerabilidades con complejidades iguales o menores que la capacidad del atacante.
+        #y con un cvss que sea mayor que el limite impuesto por la motivacion
         nodos_atacables = []
         for n in nodos_vulns:
             for v in n.info['CVE']:
@@ -261,23 +275,35 @@ class VirusAgent(Agent):
                         temp = 2
                     else:
                         temp = 3
-                    if temp <= self.experticie_atacante:
+                    if temp <= self.experticie_atacante and self.motivacion <= v['cvss']:
                         nodos_atacables.append(n)
                         break
         #de esta lista de nodos ordenarlos de acuerdo a su cvss mas alto en una vulnerabilidad atacable segun capacidad del atacante
         nodos_atacables.sort(reverse=True, key=self.sort_per_cvss)
-        print(len(nodos_atacables))
+      
+        print("Nodos atacables en este objetivo: ",len(nodos_atacables))
         """for n in nodos_atacables:
                                     for v in n.info['CVE']:
                                         print("cvss: ",v['cvss'],"complejidad: ",v['access']['complexity'], "UI: ", v['access']['authentication'])
                                     print("este fue el nodo: ",n.ip)"""
         ########################################aqui tengo que descartar los que tengan vuln con cvss menores a los que indique la motivacion
+
         if len(nodos_atacables) > 0:
             nodos_atacables[0].estado = State.EN_ATAQUE
             nodos_atacables.pop(0)
-        else:
-            print("hacer algo para que vaya a atacar a otra parte")
-    
+        else:   
+            #Se elige un nuevo nodo objetivo
+            self.model.nodos_centrales = list(filter(lambda x: x.org !=self.objetivo,self.model.nodos_centrales))
+            if len(self.model.nodos_centrales) > 0:
+                nuevo_objetivo = randrange(len(self.model.nodos_centrales))
+                nuevo_objetivo = self.model.nodos_centrales[nuevo_objetivo].org
+                print("Se acabaron los objetivos aqui, me viro para aca: ",nuevo_objetivo)
+                for central in self.model.nodos_centrales:
+                    central.objetivo = nuevo_objetivo
+                self.objetivo = nuevo_objetivo 
+            else:
+                print("Se acabaron todos los recursos atacables")
+
     def sort_by_cvss_cve(self,cve):
         return cve['cvss']
 
@@ -285,7 +311,7 @@ class VirusAgent(Agent):
         #tengo que encontrar la peor vulnerabilidad dentro de las capacidades del atacante, y de haber mas de una elegir una que no necesite UI
         vuls = []
         peor_cvss = 0
-        for v in self.info['CVE']:
+        for v in self.info['CVE']:  #Se sacan las vulnerabilidades que no estan al nivel del atacante o mas bajas de su motivacion
             if v is not None:
                     if v['access']['complexity'] == "LOW":
                         temp = 1
@@ -293,29 +319,30 @@ class VirusAgent(Agent):
                         temp = 2
                     else:
                         temp = 3
-                    if temp <= self.experticie_atacante:
+                    if temp <= self.experticie_atacante and self.motivacion <= v['cvss']:
                         vuls.append(v)
         vuls.sort(reverse = True,key=self.sort_by_cvss_cve)
         peor_vuln = vuls[0]
-        for v in vuls:
+
+        for v in vuls:  #Se busca entre las peores vulns una que no necesite error humano
             if v['cvss'] == peor_vuln['cvss'] and v['access']['authentication'] == "NONE":
                 peor_vuln = v
                 break
         if peor_vuln['access']['authentication'] == "NONE":
             self.estado = State.COMPROMETIDO
-        else:
+            print("Nodo ",self.ip," Comprometido!")
+        else:   
             print("Cultura organizacional: ",self.cultura_Organizacional)
-            prob_error_humano = self.cultura_Organizacional * 10 
-            if randrange(1,101) <= prob_error_humano:
+            prob_error_humano = self.cultura_Organizacional * 10
+            valor = randrange(1,101)
+            print("Valor: ",valor," porcentraje: ",prob_error_humano)  
+            if valor <= prob_error_humano:
                 self.estado = State.COMPROMETIDO
+                print("Nodo ",self.ip," Comprometido!")
             else:
                 self.estado = State.ATACADO
+                print("Nodo ",self.ip," Se salvo!")
 
-
-    #De la organizacion objetivo se ven todas las vulnerabilidades de todos sus nodos, se eligen las que sean de la capacidad del atacante
-    #de estas se eligen todas hasta (10 - el nivel de motivacion ) y se van eligiendo los nodos al que pertenezcan las vulnerabilidades en orden
-    #del cvss de forma decreciente
-    #cambien de objetivo 
     def step(self):
         if self.first:
             self.first = False
@@ -325,38 +352,6 @@ class VirusAgent(Agent):
                 self.promedio_cultura()
         if self.estado == State.EN_ATAQUE:
             self.ataque_nodo()
-            #ataque_nodo tiene que retornar algo en caso que comprometa al nodo atacado para darlo como argumento para encontrar nodo mas debil
+            
         if self.tipo == "Central" and self.org == self.objetivo:
             self.nodo_mas_debil()
-
-
-   
-""" la dejo porque es la misma estructura que para cuando sea atacado un nodo y quiera ver si se puede atacar otro.
-  
-    def try_to_infect_neighbors(self): 
-        neighbors_nodes = self.model.grid.get_neighbors(self.pos, include_center=False)
-        susceptible_neighbors = [
-            agent
-            for agent in self.model.grid.get_cell_list_contents(neighbors_nodes)
-            if agent.state is State.SUSCEPTIBLE
-        ]
-        for a in susceptible_neighbors:
-            if self.random.random() < self.virus_spread_chance:
-                a.state = State.COMPROMETIDO
-
-
-esta tambien la dejo porque puede ser un concepto interesante, aunque quizas impracticable
-
-    def try_remove_infection(self):
-        # Try to remove
-        if self.random.random() < self.recovery_chance:
-            # Success
-            self.state = State.SUSCEPTIBLE
-            self.try_gain_resistance()
-        else:
-            # Failed
-            self.state = State.COMPROMETIDO
-"""
-
-
-    

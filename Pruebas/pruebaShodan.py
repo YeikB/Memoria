@@ -6,11 +6,11 @@ import json
 
 api = Shodan(get_api_key())
 
-limit = 30000
+limit = 1050
 counter = 0
 i=0
 data =[]
-for banner in api.search_cursor('city:Concepción country:cl'):
+for banner in api.search_cursor('city:Santiago country:cl port:445'):
     # Perform some custom manipulations or stream the results to a database
     # For this example, I'll just print out the "data" property
     data.append(banner)
@@ -28,10 +28,10 @@ for ip in data:
 	print(ip['ip_str'], " ", i)
 	try:
 		hosts.append(api.host(ip['ip_str']))
-		time.sleep(1.5)
+		time.sleep(1)
 	except:
 		print("tuvimos un error, ojopiojo")
 	i=i+1
 
-with open('Conce.json', 'w') as fout:
+with open('Stgo445.json', 'w') as fout:
     json.dump(hosts, fout)
