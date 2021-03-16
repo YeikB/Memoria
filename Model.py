@@ -43,15 +43,30 @@ class VirusOnNetwork(Model):
         experticie_atacante = 0, #representa un nivel de experticie, 1 = bajo, 2 = medio, 3 = alto. Quizas se haga con mas niveles.
         motivacion = 5,
         objetivo = " ",
+        detener = False,
+        single = False,
     ):
+        self.detener = detener
         self.motivacion = motivacion
         self.objetivo = objetivo
-        #randrange(len(lista))
+        self.mensaje0 = "Objetivo Actual: " + objetivo
+        self.mensaje1 = ""
+        self.mensaje2 = ""
+        self.mensaje3 = ""
+        self.mensaje4 = ""
+        self.nodos_atacables = 1
+        self.contador_nodos_atacados = 0
+        self.contador_nodos_comprometidos = 0
+        self.contador_nodos_no_comprometidos = 0
+        
         self.G = nx.empty_graph(0) 
         correlative_num = 0
         central = 0
-        for i in range(len(lista)):
-            for j,y in enumerate(lista[i]):
+        for i,org in enumerate(lista):
+            if org[0]['org'] == self.objetivo:
+                self.num_org_obj=i
+        if single:
+            for j,y in enumerate(lista[self.num_org_obj]):
                 if j > 0:
                     self.G.add_node(correlative_num)
                     self.G.add_edge(correlative_num, central)
@@ -62,6 +77,19 @@ class VirusOnNetwork(Model):
                     central=correlative_num
                 y['correlativo'] = correlative_num 
                 correlative_num+=1
+        else:
+            for i in range(len(lista)):
+                for j,y in enumerate(lista[i]):
+                    if j > 0:
+                        self.G.add_node(correlative_num)
+                        self.G.add_edge(correlative_num, central)
+                    else:
+                        self.G.add_node(correlative_num)
+                        """if correlative_num > 0:
+                                                                                          self.G.add_edge(correlative_num, central) """  
+                        central=correlative_num
+                    y['correlativo'] = correlative_num 
+                    correlative_num+=1
         self.experticie_atacante = experticie_atacante
         self.nodos_centrales = []
 
@@ -75,22 +103,32 @@ class VirusOnNetwork(Model):
                 "Resistant": number_atacado,
             }
         )
-        #creando a los agentes.
-        for i in range(len(lista)):
-            for j,info in enumerate(reversed(lista[i])):
-                if j < len(lista[i]) - 1 :
-                    if info['ObsSO'] == -1 and len(info['ports'])==0 and len(info['vulns'])==0 :
-                        a = VirusAgent(
-                            info['correlativo'] ,
-                            self,
-                            State.SUSCEPTIBLE,
-                            self.experticie_atacante,
-                            self.motivacion,
-                            self.objetivo,
-                            info,
-                            "dispositivo_com"
-                        )
-                    else:   
+        if single:
+            for j,info in enumerate(reversed(lista[self.num_org_obj])):
+                    if j < len(lista[self.num_org_obj]) - 1 :
+                        if info['ObsSO'] == -1 and len(info['ports'])==0 and len(info['vulns'])==0 :
+                            a = VirusAgent(
+                                info['correlativo'] ,
+                                self,
+                                State.SUSCEPTIBLE,
+                                self.experticie_atacante,
+                                self.motivacion,
+                                self.objetivo,
+                                info,
+                                "dispositivo_com"
+                            )
+                        else:   
+                            a = VirusAgent(
+                                info['correlativo'],
+                                self,
+                                State.SUSCEPTIBLE,
+                                self.experticie_atacante,
+                                self.motivacion,
+                                self.objetivo,
+                                info,
+                                "Nodo"
+                            )
+                    else:    
                         a = VirusAgent(
                             info['correlativo'],
                             self,
@@ -99,24 +137,57 @@ class VirusOnNetwork(Model):
                             self.motivacion,
                             self.objetivo,
                             info,
-                            "Nodo"
+                            "Central"
                         )
+                        self.nodos_centrales.append(a)
+                    self.schedule.add(a)
+                    # Add the agent to the node
+                    self.grid.place_agent(a, info['correlativo'])
 
-                else:    
-                    a = VirusAgent(
-                        info['correlativo'],
-                        self,
-                        State.SUSCEPTIBLE,
-                        self.experticie_atacante,
-                        self.motivacion,
-                        self.objetivo,
-                        info,
-                        "Central"
-                    )
-                    self.nodos_centrales.append(a)
-                self.schedule.add(a)
-                # Add the agent to the node
-                self.grid.place_agent(a, info['correlativo'])
+        else:
+
+            #creando a los agentes.
+            for i in range(len(lista)):
+                for j,info in enumerate(reversed(lista[i])):
+                    if j < len(lista[i]) - 1 :
+                        if info['ObsSO'] == -1 and len(info['ports'])==0 and len(info['vulns'])==0 :
+                            a = VirusAgent(
+                                info['correlativo'] ,
+                                self,
+                                State.SUSCEPTIBLE,
+                                self.experticie_atacante,
+                                self.motivacion,
+                                self.objetivo,
+                                info,
+                                "dispositivo_com"
+                            )
+                        else:   
+                            a = VirusAgent(
+                                info['correlativo'],
+                                self,
+                                State.SUSCEPTIBLE,
+                                self.experticie_atacante,
+                                self.motivacion,
+                                self.objetivo,
+                                info,
+                                "Nodo"
+                            )
+
+                    else:    
+                        a = VirusAgent(
+                            info['correlativo'],
+                            self,
+                            State.SUSCEPTIBLE,
+                            self.experticie_atacante,
+                            self.motivacion,
+                            self.objetivo,
+                            info,
+                            "Central"
+                        )
+                        self.nodos_centrales.append(a)
+                    self.schedule.add(a)
+                    # Add the agent to the node
+                    self.grid.place_agent(a, info['correlativo'])
 
         self.running = True
         self.datacollector.collect(self)
@@ -129,10 +200,13 @@ class VirusOnNetwork(Model):
         except ZeroDivisionError:
             return math.inf
 
+
     def step(self):
         self.schedule.step()
         # collect data
         self.datacollector.collect(self)
+        if self.nodos_atacables == 0 and self.detener:
+            self.running = False
 
     def run_model(self, n):
         for i in range(n):
@@ -163,57 +237,22 @@ class VirusAgent(Agent):
         #en caso de ser un nodo central maneja muchos menos variables
         if  self.tipo == "Central":
             self.objetivo = objetivo
+            self.atacado = False
 
         elif self.tipo == "Nodo":
             self.punt_puertos = self.info['punt_puertos']
             self.ip = info['ip_str']
             self.cantidad_vulns = len(self.info['vulns'])   
             
-            self.puntuacion_vulns()
-
-            self.puntuacion_nodo()
+            self.punt_vuln = self.info['punt_vuln']
+            self.punt_nodo = self.info['punt_nodo']
+            self.Nivel = self.info['Nivel']
+            self.punt_SO = self.info['punt_SO']
 
         else:
             self.ip = info['ip_str']
         
         self.first = True
-
-    #se define una puntuacion de acuerdo a la peor de las cvss de todas las vulnerabilidades
-    def puntuacion_vulns(self):
-        if(len(self.info['CVE'])>0):
-            punt_vuln = 0
-            contador = 0
-            for v in self.info['CVE']:
-                if v is not None:
-                    punt_vuln += v['cvss']
-                    contador += 1
-
-            try:
-                self.punt_vuln =  round (punt_vuln / contador, 2) 
-            except:
-                self.punt_vuln = 0
-        else:
-            self.punt_vuln = 0
-
-    #se define una puntuacion de cultura organizacional del nodo, de 1 a 10 donde 10 es la peor puntuacion
-    def puntuacion_nodo(self):
-            if self.info['ObsSO'] > 0:
-                self.punt_SO = 10
-            else:
-                self.punt_SO = 1
-
-            puntaje = self.punt_vuln + self.punt_puertos + self.punt_SO
-            puntaje = round((puntaje / 3),2)
-
-            self.punt_nodo = puntaje
-            if puntaje < 5:
-                self.Nivel = "Bueno"
-            elif puntaje >= 5 and puntaje <7:
-                self.Nivel = "Medio"
-            elif puntaje <9 :
-                self.Nivel = "Grave"
-            else:
-                self.Nivel = "Critico"
 
 
     #cada nodo entrega su puntuacion local al nodo central
@@ -288,8 +327,18 @@ class VirusAgent(Agent):
                                     print("este fue el nodo: ",n.ip)"""
         ########################################aqui tengo que descartar los que tengan vuln con cvss menores a los que indique la motivacion
 
-        if len(nodos_atacables) > 0:
+        if len(nodos_atacables) > 0:    
             nodos_atacables[0].estado = State.EN_ATAQUE
+            if not self.atacado:
+                self.model.mensaje2= "Recurso mas débil: " + nodos_atacables[0].ip+"&nbsp;&nbsp;&nbsp;&nbsp;Puntuación: " + str(nodos_atacables[0].punt_nodo)   
+                self.model.mensaje3= ""
+                self.model.mensaje4= ""
+                self.atacado = True
+            else:
+                self.model.mensaje4= "Siguiente recurso mas débil: " + nodos_atacables[0].ip +"&nbsp;&nbsp;&nbsp;&nbsp;Puntuación: " + str(nodos_atacables[0].punt_nodo)
+            self.model.mensaje0= "Objetivo Actual: " + self.objetivo        
+            self.model.mensaje1= "Recursos atacables en este objetivo: " +str(len(nodos_atacables))
+            self.model.nodos_atacables = len(nodos_atacables)
             nodos_atacables.pop(0)
         else:   
             #Se elige un nuevo nodo objetivo
@@ -300,10 +349,22 @@ class VirusAgent(Agent):
                 print("Se acabaron los objetivos aqui, me viro para aca: ",nuevo_objetivo)
                 for central in self.model.nodos_centrales:
                     central.objetivo = nuevo_objetivo
-                self.objetivo = nuevo_objetivo 
+                self.model.objetivo = nuevo_objetivo
+                self.objetivo = nuevo_objetivo
+                if self.model.detener:
+                    self.model.mensaje4= "Simulación Terminada con éxito"
+                else:    
+                    self.model.mensaje4= "Como todos los objetivos han sido atacados, me muevo a atacar: " + nuevo_objetivo 
             else:
-                print("Se acabaron todos los recursos atacables")
-
+                #Caso en el que no hay mas objetivos disponibles
+                """
+                print("Se han acabado todos los objetivos")
+                self.model.mensaje0= "Todas las organizaciones han sido atacadas"
+                self.model.mensaje1= ""
+                self.model.mensaje2= ""
+                self.model.mensaje3= ""
+                self.model.mensaje4= ""
+                """
     def sort_by_cvss_cve(self,cve):
         return cve['cvss']
 
@@ -329,19 +390,27 @@ class VirusAgent(Agent):
                 peor_vuln = v
                 break
         if peor_vuln['access']['authentication'] == "NONE":
+            self.model.mensaje2= "Recurso: " + self.ip + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación recurso: " + str(self.punt_nodo) + "<br>Puntuación de Vulns: "+ str(self.punt_vuln)+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación de SO: " +str(self.punt_SO)+"<br>Puntuación de Puertos: "+str(self.punt_puertos)+"&nbsp;&nbsp;&nbsp;&nbsp;Cult. Org.: " +str(self.cultura_Organizacional)+"<br>Este recurso presenta una vulnerabilidad que no necesita autorización" 
             self.estado = State.COMPROMETIDO
             print("Nodo ",self.ip," Comprometido!")
+            self.model.mensaje3="El recurso fue comprometido!"
         else:   
             print("Cultura organizacional: ",self.cultura_Organizacional)
             prob_error_humano = self.cultura_Organizacional * 10
+            self.model.mensaje2= "Recurso: " + self.ip + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación recurso: " + str(self.punt_nodo) + "<br>Puntuación de Vulns: "+ str(self.punt_vuln)+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación de SO: " +str(self.punt_SO)+"<br>Puntuación de Puertos: "+str(self.punt_puertos)+"&nbsp;&nbsp;&nbsp;&nbsp;Cult. Org.: " +str(self.cultura_Organizacional)+"<br>Este recurso necesita autorización para explotar vulnerabilidad<br>Probabilidad de error humano: " + str(prob_error_humano) 
             valor = randrange(1,101)
             print("Valor: ",valor," porcentraje: ",prob_error_humano)  
             if valor <= prob_error_humano:
                 self.estado = State.COMPROMETIDO
                 print("Nodo ",self.ip," Comprometido!")
+                self.model.mensaje3 = "El recurso fue comprometido!"
             else:
                 self.estado = State.ATACADO
                 print("Nodo ",self.ip," Se salvo!")
+                self.model.mensaje3 = "El recurso no ha sido comprometido!"
+        if self.model.nodos_atacables == 1:
+            print("Entramos al ultimo nodo, deberia detenerse rai nau")
+            self.model.nodos_atacables = 0
 
     def step(self):
         if self.first:

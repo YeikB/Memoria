@@ -8,6 +8,7 @@ from mesa.visualization.modules import ChartModule
 from mesa.visualization.modules import NetworkModule
 from mesa.visualization.modules import TextElement
 
+
 from Model import VirusOnNetwork, State, number_COMPROMETIDO
 
 from shodan import Shodan
@@ -34,7 +35,6 @@ dictPuertos= df.set_index('Puertos').T.to_dict('list')
 with open(r"cvesV3.json", "r") as read_file:
     cves= json.load(read_file)
 
-print(len(data))
 #diccionario de organizaciones
 orgs = {}
 #esta parte se puede hacer al principio del modelo, de esta forma se podria cambiar el criterio de agrupacion, para que no sea solo de org.
@@ -95,6 +95,45 @@ for i,dato in enumerate(data):
         suma_puertos = 1
 
     dato['punt_puertos'] = suma_puertos 
+
+    #se define una puntuacion de acuerdo a la peor de las cvss de todas las vulnerabilidades
+    if(len(dato['CVE'])>0):
+            punt_vuln = 0
+            contador = 0
+            for v in dato['CVE']:
+                if v is not None:
+                    punt_vuln += v['cvss']
+                    contador += 1
+            try:
+                dato['punt_vuln'] =  round (punt_vuln / contador, 2) 
+            except:
+                dato['punt_vuln'] = 0
+    else:
+        dato['punt_vuln'] = 0
+
+    #se define una puntuacion de cultura organizacional del nodo, de 1 a 10 donde 10 es la peor puntuacion
+  
+    if dato['ObsSO'] > 0:
+        dato['punt_SO'] = 10
+    else:
+        dato['punt_SO'] = 1
+
+    puntaje = dato['punt_vuln'] + dato['punt_puertos'] + dato['punt_SO']
+    puntaje = round((puntaje / 3),2)
+
+    dato['punt_nodo'] = puntaje
+    if puntaje < 5:
+        dato['Nivel'] = "Bueno"
+    elif puntaje >= 5 and puntaje <7:
+        dato['Nivel'] = "Medio"
+    elif puntaje <9 :
+        dato['Nivel'] = "Grave"
+    else:
+        dato['Nivel'] = "Critico"
+
+def sort_by_puntaje(dato):
+    return dato['punt_nodo']
+
 Empresas = list(orgs.keys())
 for i,e in enumerate(Empresas):
     if type(e) != str:
@@ -102,14 +141,17 @@ for i,e in enumerate(Empresas):
 orgs.pop(e)
 Empresas = list(orgs.keys())
 Empresas.sort()
+print(len(Empresas))
 DatosxOrg = []
 for o in orgs.keys():
     orgTemp = []    
     for ag in orgs[o]:
         orgTemp.append(data[ag])
     nodoCentral = {"org":orgTemp[0]['org']}
+    orgTemp.sort(reverse = True, key = sort_by_puntaje)
     orgTemp.insert(0,nodoCentral)
     DatosxOrg.append(orgTemp)
+
 
  
 def network_portrayal(G):
@@ -138,7 +180,6 @@ def network_portrayal(G):
             return "#1c2694"
         else:
             return "#acaebf"    
-    
 
     def edge_color(agent1, agent2):
         if agent2.tipo == "Nodo":
@@ -192,12 +233,19 @@ def network_portrayal(G):
     def get_agents(source, target):
         return G.nodes[source]["agent"][0], G.nodes[target]["agent"][0]
 
+    def node_label(agent):
+        if agent.tipo =="Central":
+            return "{}".format(agent.org)
+        else:
+            return None 
+
     portrayal = dict()
     portrayal["nodes"] = [
         {
             "size": size_nodes(agents[0]) ,
             "color": node_color(agents[0]),
             "tooltip":node_info(agents[0]) ,
+            "label": node_label(agents[0]),
           
         }
         for (_, agents) in G.nodes.data("agent")
@@ -216,7 +264,7 @@ def network_portrayal(G):
     return portrayal
 
 
-network = NetworkModule(network_portrayal, 800, 800, library="d3")
+network = NetworkModule(network_portrayal, 400, 500, library="d3")
 chart = ChartModule(
     [
         {"Label": "Comprometido", "Color": "#FF0000"},
@@ -231,13 +279,15 @@ class MyTextElement(TextElement):
         ratio_text = "&infin;" if ratio is math.inf else "{0:.2f}".format(ratio)
         COMPROMETIDO_text = str(number_COMPROMETIDO(model))
 
-        return "Atacado/Susceptible Ratio: {}<br>COMPROMETIDO Remaining: {}".format(
-            ratio_text, COMPROMETIDO_text
+        return "{}<br>{}<br>{}<br>{}<br>{}".format(
+            model.mensaje0, model.mensaje1,model.mensaje2, model.mensaje3,model.mensaje4
         )
 
 
 model_params = {
     "lista":DatosxOrg,
+    "detener": UserSettableParameter("checkbox", "Detener en primer objetivo", False),
+    "single": UserSettableParameter("checkbox", "Solo Organización objetivo", False),
     "experticie_atacante": UserSettableParameter(
         "slider",
         "Nivel de experticie atacante",
@@ -259,12 +309,12 @@ model_params = {
     "objetivo": UserSettableParameter(
         "choice",
         "Organizacion objetivo",
-        value=Empresas[0] ,
+        value=Empresas[147],
         choices=Empresas,
     ),
 }
 
 server = ModularServer(
-    VirusOnNetwork, [network, MyTextElement(), chart], "Modelo Simulacion Escenario Ciberseguridad", model_params
+    VirusOnNetwork, [network, MyTextElement()], "Modelo Simulación Escenario Ciberseguridad", model_params
 )
 server.port = 8521
