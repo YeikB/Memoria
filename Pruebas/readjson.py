@@ -10,7 +10,7 @@ orgs = {}
 with open(r"Stgo445.json", "r") as read_file:
     data = json.load(read_file)
 print(len(data))
-with open(r"cvesV2.json", "r") as read_file:
+with open(r"cves.json", "r") as read_file:
     cves= json.load(read_file)
 print("Largo cves inicial",len(cves))
 for i,dato in enumerate(data):

@@ -390,14 +390,14 @@ class VirusAgent(Agent):
                 peor_vuln = v
                 break
         if peor_vuln['access']['authentication'] == "NONE":
-            self.model.mensaje2= "Recurso: " + self.ip + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación recurso: " + str(self.punt_nodo) + "<br>Puntuación de Vulns: "+ str(self.punt_vuln)+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación de SO: " +str(self.punt_SO)+"<br>Puntuación de Puertos: "+str(self.punt_puertos)+"&nbsp;&nbsp;&nbsp;&nbsp;Cult. Org.: " +str(self.cultura_Organizacional)+"<br>Este recurso presenta una vulnerabilidad que no necesita autorización" 
+            self.model.mensaje2= "Recurso: " + self.ip + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación recurso: " + str(self.punt_nodo) + "<br>Puntuación de Vulns: "+ str(self.punt_vuln)+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación de SO: " +str(self.punt_SO)+"<br>Puntuación de Puertos: "+str(self.punt_puertos)+"&nbsp;&nbsp;&nbsp;&nbsp;Cult. Org.: " +str(self.cultura_Organizacional)+"<br>Este recurso presenta una vulnerabilidad que no necesita acción de usuario" 
             self.estado = State.COMPROMETIDO
             print("Nodo ",self.ip," Comprometido!")
             self.model.mensaje3="El recurso fue comprometido!"
         else:   
             print("Cultura organizacional: ",self.cultura_Organizacional)
             prob_error_humano = self.cultura_Organizacional * 10
-            self.model.mensaje2= "Recurso: " + self.ip + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación recurso: " + str(self.punt_nodo) + "<br>Puntuación de Vulns: "+ str(self.punt_vuln)+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación de SO: " +str(self.punt_SO)+"<br>Puntuación de Puertos: "+str(self.punt_puertos)+"&nbsp;&nbsp;&nbsp;&nbsp;Cult. Org.: " +str(self.cultura_Organizacional)+"<br>Este recurso necesita autorización para explotar vulnerabilidad<br>Probabilidad de error humano: " + str(prob_error_humano) 
+            self.model.mensaje2= "Recurso: " + self.ip + "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación recurso: " + str(self.punt_nodo) + "<br>Puntuación de Vulns: "+ str(self.punt_vuln)+"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Puntuación de SO: " +str(self.punt_SO)+"<br>Puntuación de Puertos: "+str(self.punt_puertos)+"&nbsp;&nbsp;&nbsp;&nbsp;Cult. Org.: " +str(self.cultura_Organizacional)+"<br>Este recurso necesita acción de usuario para explotar vulnerabilidad<br>Probabilidad de error humano: " + str(prob_error_humano) 
             valor = randrange(1,101)
             print("Valor: ",valor," porcentraje: ",prob_error_humano)  
             if valor <= prob_error_humano:
