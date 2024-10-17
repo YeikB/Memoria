@@ -39,10 +39,10 @@ class VirusOnNetwork(Model):
         num_nodes=10,
         avg_node_degree=3,
         initial_outbreak_size=1,
-        virus_spread_chance=0.4,
-        virus_check_frequency=0.4,
-        recovery_chance=0.3,
-        gain_resistance_chance=0.5,
+        virus_spread_chance=1.3,
+        virus_check_frequency=1.3,
+        recovery_chance=0.8,
+        gain_resistance_chance=0.6,
     ):
 
         self.G =nx.empty_graph(0)
